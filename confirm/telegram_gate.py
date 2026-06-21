@@ -1,4 +1,5 @@
 import asyncio
+import html
 import threading
 import uuid
 from typing import Optional
@@ -187,17 +188,17 @@ class TelegramGate:
             }
             op_label = op_label_map.get(op_raw, op_raw)
             lines = ["🗑 <b>Email Guardian — DELETE intercepted</b>\n"]
-            lines.append(f"<b>Action:</b>   <code>{op_label}</code>  (msg {msgs})")
+            lines.append(f"<b>Action:</b>   <code>{html.escape(op_label)}</code>  (msg {html.escape(str(msgs))})")
             if subject:
-                lines.append(f"<b>Subject:</b>  <code>{subject}</code>")
+                lines.append(f"<b>Subject:</b>  <code>{html.escape(subject)}</code>")
             if from_:
-                lines.append(f"<b>From:</b>     <code>{from_}</code>")
+                lines.append(f"<b>From:</b>     <code>{html.escape(from_)}</code>")
             if to_:
-                lines.append(f"<b>To:</b>       <code>{to_}</code>")
+                lines.append(f"<b>To:</b>       <code>{html.escape(to_)}</code>")
             if date_:
-                lines.append(f"<b>Date:</b>     <code>{date_}</code>")
-            lines.append(f"\n<b>Process:</b>  <code>{proc}</code>")
-            lines.append(f"<b>PID:</b>      <code>{pid_s}</code>")
+                lines.append(f"<b>Date:</b>     <code>{html.escape(date_)}</code>")
+            lines.append(f"\n<b>Process:</b>  <code>{html.escape(str(proc))}</code>")
+            lines.append(f"<b>PID:</b>      <code>{html.escape(str(pid_s))}</code>")
             lines.append("\n<i>Waiting for your decision...</i>")
             return "\n".join(lines)
 
@@ -209,13 +210,13 @@ class TelegramGate:
             process = details.get("Process", "")
             pid_s   = details.get("PID", "")
             icon    = "🔴" if risk == "high" else "🟡"
-            lines   = [f"{icon} <b>DB Guardian — {label} intercepted</b>\n"]
-            lines.append(f"<b>SQL:</b>\n<code>{sql}</code>\n")
-            lines.append(f"<b>Risk:</b>     <code>{risk}</code>")
+            lines   = [f"{icon} <b>DB Guardian — {html.escape(str(label))} intercepted</b>\n"]
+            lines.append(f"<b>SQL:</b>\n<code>{html.escape(sql)}</code>\n")
+            lines.append(f"<b>Risk:</b>     <code>{html.escape(str(risk))}</code>")
             if process:
-                lines.append(f"<b>Process:</b>  <code>{process}</code>")
+                lines.append(f"<b>Process:</b>  <code>{html.escape(str(process))}</code>")
             if pid_s:
-                lines.append(f"<b>PID:</b>      <code>{pid_s}</code>")
+                lines.append(f"<b>PID:</b>      <code>{html.escape(str(pid_s))}</code>")
             lines.append("\n<i>Waiting for your decision...</i>")
             return "\n".join(lines)
 
@@ -227,7 +228,7 @@ class TelegramGate:
         }.get(action_upper, "⚠️")
         lines = [f"{icon} <b>Disk Guardian — {action_upper} intercepted</b>\n"]
         for k, v in op.get("details", {}).items():
-            lines.append(f"<b>{k}:</b>  <code>{v}</code>")
+            lines.append(f"<b>{html.escape(str(k))}:</b>  <code>{html.escape(str(v))}</code>")
         if op.get("backup_path"):
             lines.append("\n✓ <i>Backup available — will restore if denied</i>")
         else:

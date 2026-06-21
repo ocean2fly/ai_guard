@@ -357,7 +357,13 @@ class EbpfBlocker:
                 "backup_path": None,
             }
 
-        result = self.gate.ask(op)
+        print(f"[EbpfBlocker] sending Telegram ask: program={program} path={parent_dir}")
+        try:
+            result = self.gate.ask(op)
+        except Exception as exc:
+            print(f"[EbpfBlocker] gate.ask() FAILED: {exc}")
+            return
+        print(f"[EbpfBlocker] user decision: {result}")
         log_audit({"event": "disk_decision", "result": result,
                    "action": "bulk_delete" if count > 1 else "delete",
                    "directory": parent_dir, "count": count, "program": program})
