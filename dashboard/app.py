@@ -208,6 +208,11 @@ def all_programs() -> list[str]:
 # ── pages ────────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
+async def landing(request: Request):
+    return templates.TemplateResponse("landing.html", {"request": request})
+
+
+@app.get("/overview", response_class=HTMLResponse)
 async def overview(request: Request):
     cfg = load_cfg()
     return templates.TemplateResponse("overview.html", {
