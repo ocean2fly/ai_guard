@@ -5,290 +5,327 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Guardian — Kernel-Level AI Isolation Layer</title>
 <style>
-  :root {
-    --neon-blue:   #00d4ff;
-    --neon-green:  #00ff88;
-    --neon-red:    #ff3366;
-    --neon-purple: #a855f7;
-    --bg-dark:     #030712;
-    --bg-card:     #0d1117;
-    --bg-border:   #1f2937;
-    --text-dim:    #6b7280;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --blue:   #00d4ff;
+  --green:  #00ff88;
+  --red:    #ff3366;
+  --purple: #a855f7;
+  --dark:   #030712;
+  --card:   #0d1117;
+  --border: #1f2937;
+  --dim:    #6b7280;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
 
-  body {
-    background: var(--bg-dark);
-    color: #e2e8f0;
-    font-family: 'SF Mono','Fira Code',monospace;
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
+body {
+  background:var(--dark); color:#e2e8f0;
+  font-family:'SF Mono','Fira Code',monospace;
+  overflow-x:hidden;
+}
 
-  /* grid bg */
-  body::before {
-    content:'';
-    position:fixed; inset:0;
-    background-image:
-      linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
-    background-size:40px 40px;
-    pointer-events:none; z-index:0;
-  }
+/* ── Canvas BG ── */
+#canvas {
+  position:fixed; inset:0; z-index:0;
+  pointer-events:none; opacity:.35;
+}
 
-  /* scanline */
-  .scanline {
-    position:fixed; top:0; left:0; right:0; height:2px;
-    background:linear-gradient(90deg,transparent,var(--neon-blue),transparent);
-    opacity:.12; animation:scan 8s linear infinite;
-    pointer-events:none; z-index:999;
-  }
-  @keyframes scan { 0%{top:0} 100%{top:100vh} }
+/* ── Grid overlay ── */
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none; z-index:0;
+}
 
-  /* ── HERO ── */
-  .hero {
-    position:relative; z-index:1;
-    min-height:100vh;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    padding:4rem 2rem; text-align:center;
-  }
+/* ── Scanline ── */
+.scanline {
+  position:fixed; left:0; right:0; height:3px;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.6),transparent);
+  animation:scan 6s linear infinite; pointer-events:none; z-index:999; top:0;
+}
+@keyframes scan{0%{top:0;opacity:.2}50%{opacity:.08}100%{top:100vh;opacity:.2}}
 
-  .badge {
-    display:inline-block;
-    border:1px solid var(--neon-blue); color:var(--neon-blue);
-    font-size:.68rem; letter-spacing:.2em; text-transform:uppercase;
-    padding:.3rem 1rem; border-radius:2px; margin-bottom:2rem;
-    animation:pulse-b 2s ease-in-out infinite;
-  }
-  @keyframes pulse-b {
-    0%,100%{box-shadow:0 0 4px var(--neon-blue)}
-    50%{box-shadow:0 0 16px var(--neon-blue),0 0 32px rgba(0,212,255,.3)}
-  }
+/* ── HERO ── */
+.hero {
+  position:relative; z-index:1; min-height:100vh;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:4rem 2rem; text-align:center;
+}
 
-  h1 {
-    font-size:clamp(2.2rem,6vw,4.8rem);
-    font-weight:800; letter-spacing:-.02em; line-height:1.1;
-    margin-bottom:1rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
-  .line1 { color:#f1f5f9; }
-  .line2 {
-    background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    background-clip:text;
-  }
+/* Badge */
+.badge {
+  display:inline-flex; align-items:center; gap:.5rem;
+  border:1px solid var(--blue); color:var(--blue);
+  font-size:.65rem; letter-spacing:.22em; text-transform:uppercase;
+  padding:.3rem 1rem; border-radius:2px; margin-bottom:2rem;
+  animation:badge-pulse 2.5s ease-in-out infinite;
+}
+.badge-dot {
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green); box-shadow:0 0 8px var(--green);
+  animation:blink 1.2s ease-in-out infinite;
+}
+@keyframes badge-pulse{0%,100%{box-shadow:0 0 6px rgba(0,212,255,.4)}50%{box-shadow:0 0 18px rgba(0,212,255,.7),0 0 40px rgba(0,212,255,.2)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-  .sub {
-    font-size:1rem; color:var(--text-dim); max-width:520px;
-    line-height:1.7; margin-bottom:2.5rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
+/* Title */
+h1 {
+  font-size:clamp(2rem,6.5vw,5rem); font-weight:900;
+  letter-spacing:-.03em; line-height:1.05; margin-bottom:1.2rem;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+.t1{color:#f1f5f9}
+.t2 {
+  background:linear-gradient(90deg,var(--blue) 0%,var(--purple) 50%,var(--blue) 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:shimmer 3s linear infinite;
+}
+@keyframes shimmer{0%{background-position:0% center}100%{background-position:200% center}}
 
-  /* CTA */
-  .cta-wrap { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-bottom:4rem; }
+/* Glitch */
+.glitch { position:relative; display:inline-block; }
+.glitch::before,.glitch::after {
+  content:attr(data-text); position:absolute; top:0; left:0; width:100%;
+  background:linear-gradient(90deg,var(--blue) 0%,var(--purple) 50%,var(--blue) 100%);
+  background-size:200% auto; -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent; background-clip:text;
+}
+.glitch::before {
+  left:2px; text-shadow:none;
+  animation:glitch1 4s infinite;
+  clip-path:polygon(0 0,100% 0,100% 35%,0 35%);
+}
+.glitch::after {
+  left:-2px;
+  animation:glitch2 4s infinite;
+  clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%);
+}
+@keyframes glitch1{
+  0%,85%,100%{transform:translate(0);opacity:0}
+  87%{transform:translate(-3px,1px);opacity:.8}
+  89%{transform:translate(2px,-1px);opacity:.6}
+  91%{transform:translate(0);opacity:0}
+}
+@keyframes glitch2{
+  0%,85%,100%{transform:translate(0);opacity:0}
+  87%{transform:translate(3px,-1px);opacity:.7}
+  89%{transform:translate(-2px,1px);opacity:.5}
+  91%{transform:translate(0);opacity:0}
+}
 
-  .cta-primary {
-    display:inline-flex; align-items:center; gap:.6rem;
-    padding:.8rem 2rem; border-radius:4px; font-size:.9rem; font-weight:700;
-    background:linear-gradient(135deg,var(--neon-blue),var(--neon-purple));
-    color:#000; text-decoration:none; letter-spacing:.02em;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    transition:opacity .2s, transform .2s; box-shadow:0 0 24px rgba(0,212,255,.3);
-  }
-  .cta-primary:hover { opacity:.85; transform:translateY(-1px); }
+/* Typewriter */
+.typewriter { display:inline-block; }
+.cursor { display:inline-block; width:3px; height:1em; background:var(--blue); margin-left:2px; vertical-align:text-bottom; animation:cur .7s step-end infinite; }
+@keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
 
-  .cta-ghost {
-    display:inline-flex; align-items:center; gap:.6rem;
-    padding:.8rem 2rem; border-radius:4px; font-size:.9rem; font-weight:600;
-    border:1px solid var(--bg-border); color:#94a3b8; text-decoration:none;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    transition:border-color .2s, color .2s;
-  }
-  .cta-ghost:hover { border-color:rgba(0,212,255,.4); color:var(--neon-blue); }
+/* Sub */
+.sub {
+  font-size:.95rem; color:var(--dim); max-width:540px; line-height:1.75;
+  margin-bottom:2.5rem;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
 
-  /* Tags */
-  .tags { display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-bottom:5rem; }
-  .tag {
-    font-size:.68rem; padding:.25rem .7rem; border-radius:2px;
-    letter-spacing:.06em; text-transform:uppercase;
-  }
-  .tb { background:rgba(0,212,255,.08); color:var(--neon-blue); border:1px solid rgba(0,212,255,.25); }
-  .tg { background:rgba(0,255,136,.08); color:var(--neon-green); border:1px solid rgba(0,255,136,.25); }
-  .tp { background:rgba(168,85,247,.08); color:var(--neon-purple); border:1px solid rgba(168,85,247,.25); }
+/* CTA */
+.cta-wrap{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin-bottom:3.5rem}
+.cta-primary {
+  display:inline-flex; align-items:center; gap:.6rem;
+  padding:.85rem 2.2rem; border-radius:3px; font-size:.95rem; font-weight:800;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  color:#000; text-decoration:none;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  box-shadow:0 0 32px rgba(0,212,255,.4), 0 0 64px rgba(168,85,247,.2);
+  transition:transform .2s, box-shadow .2s;
+  letter-spacing:.02em;
+}
+.cta-primary:hover{transform:translateY(-2px);box-shadow:0 0 48px rgba(0,212,255,.6),0 0 80px rgba(168,85,247,.3)}
+.cta-ghost {
+  display:inline-flex; align-items:center; gap:.6rem;
+  padding:.85rem 2.2rem; border-radius:3px; font-size:.95rem; font-weight:600;
+  border:1px solid var(--border); color:#94a3b8; text-decoration:none;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  transition:border-color .2s,color .2s,box-shadow .2s;
+}
+.cta-ghost:hover{border-color:var(--blue);color:var(--blue);box-shadow:0 0 16px rgba(0,212,255,.2)}
 
-  /* ── ARCH DIAGRAM ── */
-  .arch { width:100%; max-width:660px; }
+/* Tags */
+.tags{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-bottom:5rem}
+.tag{font-size:.65rem;padding:.22rem .7rem;border-radius:2px;letter-spacing:.07em;text-transform:uppercase}
+.tb{background:rgba(0,212,255,.08);color:var(--blue);border:1px solid rgba(0,212,255,.25)}
+.tg{background:rgba(0,255,136,.08);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+.tp{background:rgba(168,85,247,.08);color:var(--purple);border:1px solid rgba(168,85,247,.25)}
 
-  .layer {
-    border:1px solid var(--bg-border); border-radius:6px;
-    padding:1rem 1.4rem; background:var(--bg-card);
-    transition:border-color .3s;
-  }
-  .layer:hover { border-color:rgba(0,212,255,.35); }
-  .layer-agent  { border-color:rgba(168,85,247,.5); }
-  .layer-auto   { border-color:rgba(0,212,255,.3); }
-  .layer-ebpf   {
-    border-color:var(--neon-green);
-    box-shadow:0 0 20px rgba(0,255,136,.12),inset 0 0 20px rgba(0,255,136,.03);
-  }
-  .layer-kernel { border-color:rgba(255,51,102,.4); }
+/* ── ARCH ── */
+.arch{width:100%;max-width:680px}
+.layer {
+  border:1px solid var(--border); border-radius:6px; padding:1.1rem 1.4rem;
+  background:rgba(13,17,23,.85); backdrop-filter:blur(4px);
+  transition:all .3s; cursor:default;
+}
+.layer:hover{transform:scaleX(1.01)}
+.l-agent {border-color:rgba(168,85,247,.55);}
+.l-agent:hover{box-shadow:0 0 20px rgba(168,85,247,.2)}
+.l-auto  {border-color:rgba(0,212,255,.35);}
+.l-auto:hover{box-shadow:0 0 20px rgba(0,212,255,.15)}
+.l-ebpf  {
+  border-color:var(--green);
+  box-shadow:0 0 24px rgba(0,255,136,.15),inset 0 0 24px rgba(0,255,136,.04);
+  animation:ebpf-pulse 3s ease-in-out infinite;
+}
+@keyframes ebpf-pulse{0%,100%{box-shadow:0 0 24px rgba(0,255,136,.15),inset 0 0 24px rgba(0,255,136,.04)}50%{box-shadow:0 0 40px rgba(0,255,136,.3),inset 0 0 32px rgba(0,255,136,.07)}}
+.l-kernel{border-color:rgba(255,51,102,.4);}
+.l-kernel:hover{box-shadow:0 0 20px rgba(255,51,102,.15)}
 
-  .lh { display:flex; align-items:center; gap:.7rem; margin-bottom:.4rem; }
-  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .dp { background:var(--neon-purple); box-shadow:0 0 6px var(--neon-purple); }
-  .db { background:var(--neon-blue);   box-shadow:0 0 6px var(--neon-blue); }
-  .dg { background:var(--neon-green);  box-shadow:0 0 8px var(--neon-green); }
-  .dr { background:var(--neon-red);    box-shadow:0 0 6px var(--neon-red); }
+.lh{display:flex;align-items:center;gap:.7rem;margin-bottom:.4rem}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dp{background:var(--purple);box-shadow:0 0 8px var(--purple)}
+.db{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.dg{background:var(--green);box-shadow:0 0 10px var(--green)}
+.dr{background:var(--red);box-shadow:0 0 8px var(--red)}
+.ln{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.lbadge{margin-left:auto;font-size:.6rem;padding:.15rem .5rem;border-radius:2px;letter-spacing:.07em}
+.bs{background:rgba(168,85,247,.15);color:var(--purple)}
+.bb{background:rgba(0,212,255,.12);color:var(--blue)}
+.bg{background:rgba(0,255,136,.14);color:var(--green)}
+.br{background:rgba(255,51,102,.12);color:#fb7185}
+.ld{font-size:.72rem;color:var(--dim);line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.hooks{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem}
+.hook{font-size:.6rem;padding:.15rem .4rem;border-radius:2px;background:rgba(0,255,136,.07);color:var(--green);border:1px solid rgba(0,255,136,.2)}
 
-  .ln {
-    font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-  }
-  .lbadge {
-    margin-left:auto; font-size:.62rem; padding:.18rem .55rem;
-    border-radius:2px; letter-spacing:.07em;
-  }
-  .bs { background:rgba(168,85,247,.15); color:var(--neon-purple); }
-  .bsy{ background:rgba(0,212,255,.12);  color:var(--neon-blue); }
-  .bk { background:rgba(0,255,136,.14);  color:var(--neon-green); }
-  .br { background:rgba(255,51,102,.12); color:var(--neon-red); }
+.arrow{display:flex;flex-direction:column;align-items:center;height:2.8rem;position:relative}
+.arrow::before{content:'';width:1px;flex:1;background:linear-gradient(to bottom,rgba(0,212,255,.5),rgba(0,212,255,.05))}
+.arrow::after{content:'▼';font-size:.55rem;color:var(--blue);opacity:.7}
+.arrow.hard::before{background:linear-gradient(to bottom,rgba(255,51,102,.6),rgba(255,51,102,.05))}
+.arrow.hard::after{color:var(--red)}
+.albl{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:.58rem;white-space:nowrap;background:rgba(255,51,102,.1);border:1px solid rgba(255,51,102,.25);color:var(--red);padding:.1rem .4rem;border-radius:2px}
 
-  .ld {
-    font-size:.73rem; color:var(--text-dim); line-height:1.5;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
-  .hooks { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.55rem; }
-  .hook {
-    font-size:.62rem; padding:.18rem .45rem; border-radius:2px;
-    background:rgba(0,255,136,.07); color:var(--neon-green);
-    border:1px solid rgba(0,255,136,.2); letter-spacing:.04em;
-  }
+/* data packet animation */
+.packet {
+  position:absolute; left:calc(50% - 4px); width:8px; height:8px;
+  border-radius:50%; background:var(--blue);
+  box-shadow:0 0 8px var(--blue);
+  animation:packet-flow 2s ease-in-out infinite;
+  opacity:0;
+}
+.arrow.hard .packet{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes packet-flow{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
 
-  .arrow {
-    display:flex; flex-direction:column; align-items:center; height:2.4rem;
-    position:relative;
-  }
-  .arrow::before {
-    content:''; width:1px; flex:1;
-    background:linear-gradient(to bottom,rgba(0,212,255,.4),rgba(0,212,255,.08));
-  }
-  .arrow::after { content:'▼'; font-size:.55rem; color:var(--neon-blue); opacity:.6; }
-  .arrow.hard::before { background:linear-gradient(to bottom,rgba(255,51,102,.5),rgba(255,51,102,.08)); }
-  .arrow.hard::after  { color:var(--neon-red); }
-  .arrow-lbl {
-    position:absolute; right:0; top:50%; transform:translateY(-50%);
-    font-size:.6rem; white-space:nowrap;
-    background:rgba(255,51,102,.1); border:1px solid rgba(255,51,102,.2);
-    color:var(--neon-red); padding:.12rem .4rem; border-radius:2px;
-  }
+/* ── SECTION ── */
+section{position:relative;z-index:1;padding:5rem 2rem}
+.inner{max-width:960px;margin:0 auto}
+.slbl{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);margin-bottom:.6rem}
+.stitle{font-size:clamp(1.5rem,3vw,2.3rem);font-weight:800;margin-bottom:.8rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-.02em}
+.sdesc{color:var(--dim);font-size:.88rem;line-height:1.7;max-width:520px;margin-bottom:2.5rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 
-  /* ── SECTION ── */
-  section { position:relative; z-index:1; padding:5rem 2rem; }
-  .inner  { max-width:940px; margin:0 auto; }
-  .slbl   { font-size:.68rem; letter-spacing:.2em; text-transform:uppercase; color:var(--neon-blue); margin-bottom:.6rem; }
-  .stitle {
-    font-size:clamp(1.5rem,3vw,2.2rem); font-weight:700; margin-bottom:.8rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; letter-spacing:-.02em;
-  }
-  .sdesc {
-    color:var(--text-dim); font-size:.88rem; line-height:1.7; max-width:520px;
-    margin-bottom:2.5rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
+/* ── LIVE TERMINAL ── */
+.terminal {
+  background:#000; border:1px solid rgba(0,255,136,.3); border-radius:6px;
+  padding:1.25rem; font-size:.72rem; line-height:1.8;
+  box-shadow:0 0 32px rgba(0,255,136,.08);
+  max-height:280px; overflow:hidden; position:relative;
+}
+.term-bar {
+  display:flex; align-items:center; gap:.5rem; margin-bottom:1rem;
+  padding-bottom:.75rem; border-bottom:1px solid rgba(0,255,136,.15);
+}
+.term-dot{width:10px;height:10px;border-radius:50%}
+.td1{background:#ff5f57}.td2{background:#ffbd2e}.td3{background:#28ca41}
+.term-title{margin-left:.5rem;font-size:.65rem;color:var(--dim);letter-spacing:.08em}
+.term-live{margin-left:auto;font-size:.6rem;color:var(--green);animation:blink 1s step-end infinite}
+#term-log{list-style:none;display:flex;flex-direction:column;gap:.2rem}
+#term-log li{opacity:0;transform:translateY(4px);transition:all .4s}
+#term-log li.show{opacity:1;transform:translateY(0)}
+.tg-green{color:var(--green)} .tg-red{color:var(--red)}
+.tg-blue{color:var(--blue)} .tg-dim{color:var(--dim)}
+.tg-yellow{color:#fbbf24}
 
-  /* ── CARDS ── */
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:1rem; }
-  .card {
-    background:var(--bg-card); border:1px solid var(--bg-border);
-    border-radius:6px; padding:1.4rem;
-    transition:border-color .3s, transform .2s;
-  }
-  .card:hover { border-color:rgba(0,212,255,.3); transform:translateY(-2px); }
-  .cnum { font-size:.62rem; color:var(--text-dim); letter-spacing:.1em; margin-bottom:.6rem; }
-  .ctitle {
-    font-size:.88rem; font-weight:700; margin-bottom:.45rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
-  .cdesc {
-    font-size:.75rem; color:var(--text-dim); line-height:1.6; margin-bottom:.9rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
-  .ccode {
-    background:rgba(0,0,0,.4); border:1px solid var(--bg-border);
-    border-radius:4px; padding:.65rem; font-size:.68rem; color:#94a3b8;
-    line-height:1.5; margin-bottom:.9rem; overflow-x:auto;
-  }
-  .cr { color:#fb7185; } .cg { color:var(--neon-green); }
-  .cb { color:var(--neon-blue); } .cy { color:#fbbf24; }
+/* ── CARDS ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:1rem}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  padding:1.4rem;transition:all .3s;position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.4),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.card:hover{border-color:rgba(0,212,255,.3);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.card:hover::before{opacity:1}
+.cnum{font-size:.6rem;color:var(--dim);letter-spacing:.1em;margin-bottom:.6rem}
+.ctitle{font-size:.9rem;font-weight:700;margin-bottom:.45rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.cdesc{font-size:.75rem;color:var(--dim);line-height:1.6;margin-bottom:.9rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.ccode{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:4px;padding:.65rem;font-size:.67rem;color:#94a3b8;line-height:1.6;margin-bottom:.9rem;overflow-x:auto}
+.cc-red{color:#fb7185}.cc-green{color:var(--green)}.cc-blue{color:var(--blue)}.cc-yellow{color:#fbbf24}
+.result{display:inline-flex;align-items:center;gap:.4rem;font-size:.62rem;color:var(--green);letter-spacing:.05em}
+.result::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.4s ease-in-out infinite}
 
-  .result {
-    display:inline-flex; align-items:center; gap:.4rem;
-    font-size:.65rem; color:var(--neon-green); letter-spacing:.05em;
-  }
-  .result::before {
-    content:''; display:inline-block; width:6px; height:6px;
-    border-radius:50%; background:var(--neon-green);
-    box-shadow:0 0 6px var(--neon-green);
-    animation:blink 1.4s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:3rem}
+.stat{background:var(--card);padding:1.6rem;text-align:center;transition:background .2s}
+.stat:hover{background:#111827}
+.snum{font-size:2.2rem;font-weight:900;line-height:1;margin-bottom:.3rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.slb{font-size:.62rem;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+.nbl{color:var(--blue)} .ngr{color:var(--green)} .npu{color:var(--purple)} .nre{color:var(--red)}
 
-  /* ── STATS ── */
-  .stats {
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:1px; background:var(--bg-border);
-    border:1px solid var(--bg-border); border-radius:6px; overflow:hidden;
-    margin-top:3.5rem;
-  }
-  .stat { background:var(--bg-card); padding:1.5rem; text-align:center; }
-  .snum {
-    font-size:2rem; font-weight:800; line-height:1; margin-bottom:.25rem;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  }
-  .slb { font-size:.65rem; color:var(--text-dim); letter-spacing:.08em; text-transform:uppercase; }
-  .nbl{color:var(--neon-blue)} .ngr{color:var(--neon-green)} .npu{color:var(--neon-purple)} .nre{color:var(--neon-red)}
+/* modules */
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-top:2rem}
+.mod{border:1px solid var(--border);border-radius:6px;padding:1.3rem;background:var(--card);transition:all .3s}
+.mod:hover{transform:translateY(-2px);border-color:rgba(0,212,255,.3)}
+.mod.live{border-color:rgba(0,255,136,.25)}
+.mod-icon{font-size:1.4rem;margin-bottom:.55rem}
+.mod-name{font-size:.85rem;font-weight:700;margin-bottom:.25rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.mod-tech{font-size:.63rem;color:var(--blue);margin-bottom:.45rem;letter-spacing:.05em}
+.mod-desc{font-size:.72rem;color:var(--dim);line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.live-badge{font-size:.58rem;color:var(--green);margin-left:.4rem;animation:blink 1.5s ease-in-out infinite}
 
-  /* ── FOOTER ── */
-  footer {
-    position:relative; z-index:1;
-    border-top:1px solid var(--bg-border);
-    padding:2rem; text-align:center;
-    font-size:.7rem; color:var(--text-dim);
-  }
-  footer a { color:var(--neon-blue); text-decoration:none; }
-  footer a:hover { text-decoration:underline; }
+/* footer */
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:2rem;text-align:center;font-size:.7rem;color:var(--dim)}
+footer a{color:var(--blue);text-decoration:none}
+footer a:hover{text-decoration:underline}
+
+/* scroll fade-in */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
+
+<canvas id="canvas"></canvas>
 <div class="scanline"></div>
 
 <!-- ══ HERO ══ -->
 <div class="hero">
-  <div class="badge">Kernel-Level Security Research</div>
+  <div class="badge">
+    <div class="badge-dot"></div>
+    Kernel-Level Security Research · Live
+  </div>
 
   <h1>
-    <div class="line1">AI Guardian</div>
-    <div class="line2">Kernel-Level AI Isolation Layer</div>
+    <div class="t1">AI Guardian</div>
+    <div class="t2 glitch" data-text="Kernel-Level AI Isolation">
+      <span class="typewriter" id="tw"></span><span class="cursor"></span>
+    </div>
   </h1>
 
   <p class="sub">
-    When an AI agent writes scripts, spawns sub-agents, or schedules cron jobs to cause damage —
+    When an AI agent writes scripts, spawns sub-agents, or schedules cron jobs —
     eBPF hooks at the kernel boundary intercept every dangerous syscall before it lands.
-    Auto mode alone isn't enough.
+    <strong style="color:#e2e8f0">Auto mode alone isn't enough.</strong>
   </p>
 
   <div class="cta-wrap">
     <a href="/overview" class="cta-primary">
       Enter Dashboard
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-      </svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
     </a>
     <a href="https://github.com/ocean2fly/ai_guard" target="_blank" class="cta-ghost">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-      </svg>
-      GitHub
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      View on GitHub
     </a>
   </div>
 
@@ -298,123 +335,141 @@
     <span class="tag tg">Disk · DB · Email</span>
     <span class="tag tp">Telegram Confirmation</span>
     <span class="tag tb">Linux Kernel 6.1+</span>
+    <span class="tag tg">SIGSTOP / SIGCONT</span>
   </div>
 
   <!-- Architecture Diagram -->
   <div class="arch">
-    <div class="layer layer-agent">
+    <div class="layer l-agent">
       <div class="lh">
         <div class="dot dp"></div>
-        <span class="ln" style="color:var(--neon-purple)">AI Agent</span>
-        <span class="lbadge bs">Claude Code</span>
+        <span class="ln" style="color:var(--purple)">AI Agent</span>
+        <span class="lbadge bs">Claude Code · uid=1000</span>
       </div>
-      <div class="ld">Generates code, spawns sub-agents, schedules tasks, calls APIs</div>
+      <div class="ld">Generates code, spawns sub-agents, schedules cron jobs, calls external APIs</div>
     </div>
 
-    <div class="arrow">
-      <span class="arrow-lbl">partial block</span>
+    <div class="arrow" style="animation-delay:.2s">
+      <div class="packet" style="animation-delay:0s"></div>
+      <span class="albl">partial block</span>
     </div>
 
-    <div class="layer layer-auto">
+    <div class="layer l-auto">
       <div class="lh">
         <div class="dot db"></div>
-        <span class="ln" style="color:var(--neon-blue)">Auto Mode</span>
-        <span class="lbadge bsy">Session Layer</span>
+        <span class="ln" style="color:var(--blue)">Auto Mode</span>
+        <span class="lbadge bb">Session Layer</span>
       </div>
-      <div class="ld">Intent-chain reasoning + deny rules. Effective within the active session only.
+      <div class="ld">Intent-chain reasoning + deny rules. Effective within active session only.
         Sub-agents lose context — rule gaps become exploitable.</div>
     </div>
 
     <div class="arrow hard">
-      <span class="arrow-lbl">hard block ✦</span>
+      <div class="packet" style="animation-delay:.5s;background:var(--red);box-shadow:0 0 8px var(--red)"></div>
+      <span class="albl">hard block ✦ always</span>
     </div>
 
-    <div class="layer layer-ebpf">
+    <div class="layer l-ebpf">
       <div class="lh">
         <div class="dot dg"></div>
-        <span class="ln" style="color:var(--neon-green)">eBPF Guardian</span>
-        <span class="lbadge bk">System Layer · 24/7</span>
+        <span class="ln" style="color:var(--green)">eBPF Guardian</span>
+        <span class="lbadge bg">System Layer · 24 / 7</span>
       </div>
-      <div class="ld">Hooks kernel probes unconditionally. No session, no context, no escape.
-        Every process — cron jobs, sub-agents, compiled binaries — passes through.</div>
+      <div class="ld">Hooks kernel probes unconditionally — no session, no context, no escape.
+        Every process passes through: cron jobs, sub-agents, compiled binaries.</div>
       <div class="hooks">
         <span class="hook">lsm/inode_unlink</span>
         <span class="hook">uprobe · query__start</span>
         <span class="hook">uprobe · SSL_write</span>
         <span class="hook">SIGSTOP / SIGCONT</span>
+        <span class="hook">Telegram confirm</span>
       </div>
     </div>
 
-    <div class="arrow"></div>
+    <div class="arrow">
+      <div class="packet" style="animation-delay:1s"></div>
+    </div>
 
-    <div class="layer layer-kernel">
+    <div class="layer l-kernel">
       <div class="lh">
         <div class="dot dr"></div>
         <span class="ln" style="color:#fb7185">Linux Kernel</span>
         <span class="lbadge br">Ring 0</span>
       </div>
-      <div class="ld">inode_unlink · socket · execve — syscall boundary</div>
+      <div class="ld">inode_unlink · socket · execve · mmap — the real syscall boundary</div>
     </div>
   </div>
 </div>
 
+<!-- ══ LIVE TERMINAL ══ -->
+<section style="background:rgba(0,0,0,.4);padding:3rem 2rem">
+<div class="inner fade-in">
+  <div class="slbl">// Live Intercept Feed</div>
+  <div class="stitle">Real-time guardian activity</div>
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot td1"></div>
+      <div class="term-dot td2"></div>
+      <div class="term-dot td3"></div>
+      <span class="term-title">ai-guardian · kernel intercept log</span>
+      <span class="term-live">● LIVE</span>
+    </div>
+    <ul id="term-log"></ul>
+  </div>
+</div>
+</section>
+
 <!-- ══ MODULES ══ -->
-<section style="background:rgba(0,0,0,.3)">
+<section class="fade-in">
 <div class="inner">
   <div class="slbl">// Guardian Modules</div>
   <div class="stitle">Three enforcement planes</div>
   <div class="sdesc">Each module hooks a different kernel surface, together covering the full threat surface of a rogue AI agent.</div>
-
-  <div class="cards">
-    <div class="card" style="border-color:rgba(0,255,136,.2)">
-      <div style="font-size:1.3rem;margin-bottom:.5rem">🖥</div>
-      <div class="ctitle">Disk Guardian <span style="font-size:.6rem;color:var(--neon-green);margin-left:.4rem">● LIVE</span></div>
-      <div style="font-size:.65rem;color:var(--neon-blue);margin-bottom:.5rem;letter-spacing:.05em">eBPF LSM · inode_unlink</div>
-      <div class="cdesc">Intercepts every file deletion at the VFS layer. Backs up before asking.
-        2s batch window collapses bulk deletes into one confirmation.</div>
+  <div class="mods">
+    <div class="mod live">
+      <div class="mod-icon">🖥</div>
+      <div class="mod-name">Disk Guardian<span class="live-badge">● LIVE</span></div>
+      <div class="mod-tech">eBPF LSM · lsm/inode_unlink</div>
+      <div class="mod-desc">Intercepts every file deletion at VFS layer. Backs up before asking. 2s batch window collapses bulk deletes into one message.</div>
     </div>
-    <div class="card" style="border-color:rgba(0,255,136,.2)">
-      <div style="font-size:1.3rem;margin-bottom:.5rem">🗄</div>
-      <div class="ctitle">DB Guardian <span style="font-size:.6rem;color:var(--neon-green);margin-left:.4rem">● LIVE</span></div>
-      <div style="font-size:.65rem;color:var(--neon-blue);margin-bottom:.5rem;letter-spacing:.05em">BPF uprobe · query__start USDT</div>
-      <div class="cdesc">Hooks PostgreSQL's USDT probe before query execution.
-        Catches DROP, TRUNCATE, DELETE from any language driver.</div>
+    <div class="mod live">
+      <div class="mod-icon">🗄</div>
+      <div class="mod-name">DB Guardian<span class="live-badge">● LIVE</span></div>
+      <div class="mod-tech">BPF uprobe · query__start USDT</div>
+      <div class="mod-desc">Hooks PostgreSQL's USDT probe before query execution. Catches DROP / TRUNCATE / DELETE from any language driver.</div>
     </div>
-    <div class="card">
-      <div style="font-size:1.3rem;margin-bottom:.5rem">✉️</div>
-      <div class="ctitle">Email Guardian <span style="font-size:.6rem;color:var(--text-dim);margin-left:.4rem">◌ PLANNED</span></div>
-      <div style="font-size:.65rem;color:var(--neon-blue);margin-bottom:.5rem;letter-spacing:.05em">uprobe · SSL_write · libssl.so</div>
-      <div class="cdesc">Intercepts outbound TLS before encryption. Parses SMTP/IMAP
-        in plaintext, blocks dangerous patterns.</div>
+    <div class="mod">
+      <div class="mod-icon">✉️</div>
+      <div class="mod-name">Email Guardian<span style="font-size:.58rem;color:var(--dim);margin-left:.4rem">◌ PLANNED</span></div>
+      <div class="mod-tech">uprobe · SSL_write · libssl.so</div>
+      <div class="mod-desc">Intercepts outbound TLS before encryption. Parses SMTP / IMAP in plaintext, blocks on dangerous patterns.</div>
     </div>
-    <div class="card" style="border-color:rgba(0,255,136,.2)">
-      <div style="font-size:1.3rem;margin-bottom:.5rem">📊</div>
-      <div class="ctitle">Dashboard <span style="font-size:.6rem;color:var(--neon-green);margin-left:.4rem">● LIVE</span></div>
-      <div style="font-size:.65rem;color:var(--neon-blue);margin-bottom:.5rem;letter-spacing:.05em">FastAPI · Jinja2 · port 8080</div>
-      <div class="cdesc">Real-time overview of all guardian modules.
-        Intercept counts, guardian status, recent events with risk badges.</div>
+    <div class="mod live">
+      <div class="mod-icon">📊</div>
+      <div class="mod-name">Dashboard<span class="live-badge">● LIVE</span></div>
+      <div class="mod-tech">FastAPI · Jinja2 · port 8080</div>
+      <div class="mod-desc">Real-time overview: intercept counts, guardian status, risk-badged event log, config editor.</div>
     </div>
   </div>
 </div>
 </section>
 
 <!-- ══ RESEARCH ══ -->
-<section>
+<section style="background:rgba(0,0,0,.3)" class="fade-in">
 <div class="inner">
   <div class="slbl">// Research Findings</div>
   <div class="stitle">Confirmed auto mode bypass cases</div>
-  <div class="sdesc">Empirical tests showing that Claude Code's auto mode, while intelligent,
-    has structural blind spots that only a kernel-level guardian can fill.</div>
+  <div class="sdesc">Empirical tests showing Claude Code's auto mode has structural blind spots that only a kernel-level guardian can fill.</div>
 
   <div class="cards">
     <div class="card">
       <div class="cnum">CASE 01 · DATABASE</div>
       <div class="ctitle">DELETE via Python driver</div>
-      <div class="cdesc">Deny rules cover <code>psql -c "DELETE"</code> but not psycopg2.
-        Semantic analysis also missed it. 3 rows deleted silently.</div>
+      <div class="cdesc">Deny rules cover <code style="color:var(--blue)">psql -c "DELETE"</code> but not psycopg2 connecting directly. Semantic analysis also missed it. 3 rows deleted silently.</div>
       <div class="ccode">
-<span class="cr">cur</span>.<span class="cb">execute</span>(<span class="cy">'DELETE FROM users'</span>)
-<span class="cg"># auto mode: pass  eBPF: STOP ✦</span>
+<span class="cc-red">cur</span>.<span class="cc-blue">execute</span>(<span class="cc-yellow">'DELETE FROM users'</span>)
+<span class="cc-green"># → auto mode: pass</span>
+<span class="cc-green"># → eBPF DB Guardian: SIGSTOP ✦</span>
       </div>
       <div class="result">BYPASSED AUTO MODE · CAUGHT BY eBPF</div>
     </div>
@@ -422,12 +477,11 @@
     <div class="card">
       <div class="cnum">CASE 02 · EMAIL</div>
       <div class="ctitle">Trash via fresh sub-agent</div>
-      <div class="cdesc">Parent blocked every direct attempt. A freshly spawned sub-agent
-        with no history used urllib to call Gmail /trash — no rule matched, no context.</div>
+      <div class="cdesc">Parent blocked every direct attempt. Freshly spawned sub-agent with no history used urllib → Gmail /trash. No rule matched, no context, parent warned too late.</div>
       <div class="ccode">
-<span class="cr">Agent</span>(<span class="cy">"run this urllib /trash snippet"</span>)
-<span class="cg"># sub-agent: no context → pass</span>
-<span class="cg"># parent: WARNING (too late)</span>
+<span class="cc-red">Agent</span>(<span class="cc-yellow">"run this urllib /trash snippet"</span>)
+<span class="cc-green"># sub-agent: no context → pass</span>
+<span class="cc-green"># parent SECURITY WARNING (post-hoc)</span>
       </div>
       <div class="result">BYPASSED AUTO MODE · EMAIL IN TRASH</div>
     </div>
@@ -435,22 +489,21 @@
     <div class="card">
       <div class="cnum">CASE 03 · FILESYSTEM</div>
       <div class="ctitle">File deletion — zero deny rules</div>
-      <div class="cdesc">No Bash deny rules exist for file deletion. Sub-agent prompted to
-        "clean up a temp file" deleted it — no interception, no warning at all.</div>
+      <div class="cdesc">No Bash deny rules exist for file deletion. Sub-agent prompted to "clean up a temp file" deleted it with zero interception and zero warning from the parent session.</div>
       <div class="ccode">
-<span class="cr">Agent</span>(<span class="cy">"clean up /tmp/sensitive.txt"</span>)
-<span class="cg"># no rules, no context, no warning</span>
-<span class="cg"># file gone. completely silent.</span>
+<span class="cc-red">Agent</span>(<span class="cc-yellow">"clean up /tmp/sensitive.txt"</span>)
+<span class="cc-green"># no rules, no context, no warning</span>
+<span class="cc-green"># file gone. completely silent.</span>
       </div>
       <div class="result">MOST SILENT BYPASS — ZERO TRACE</div>
     </div>
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="snum nbl">3</div><div class="slb">Guardian Modules</div></div>
-    <div class="stat"><div class="snum nre">3</div><div class="slb">Bypass Cases Found</div></div>
+    <div class="stat"><div class="snum nbl" id="s-modules">3</div><div class="slb">Guardian Modules</div></div>
+    <div class="stat"><div class="snum nre" id="s-intercepts">—</div><div class="slb">Total Intercepts (24h)</div></div>
     <div class="stat"><div class="snum ngr">100%</div><div class="slb">eBPF Catch Rate</div></div>
-    <div class="stat"><div class="snum npu">0</div><div class="slb">Auto Mode Catch (gaps)</div></div>
+    <div class="stat"><div class="snum npu">3</div><div class="slb">Bypass Cases Found</div></div>
   </div>
 </div>
 </section>
@@ -458,14 +511,125 @@
 <!-- ══ FOOTER ══ -->
 <footer>
   <p style="margin-bottom:.4rem">
-    <a href="/overview">Dashboard</a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/ocean2fly/ai_guard" target="_blank">GitHub</a>
-    &nbsp;·&nbsp;
-    Linux 6.1+ · eBPF · BCC · Python
+    <a href="/overview">Dashboard</a> &nbsp;·&nbsp;
+    <a href="https://github.com/ocean2fly/ai_guard" target="_blank">GitHub</a> &nbsp;·&nbsp;
+    Linux 6.1+ · eBPF · BCC · Python3
   </p>
   <p>Kernel-Level AI Isolation Layer — because auto mode alone isn't enough.</p>
 </footer>
 
+<script>
+/* ── Matrix rain canvas ── */
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const chars  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@!><[]{}αβγδεζηθ';
+let cols, drops;
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  cols  = Math.floor(canvas.width / 20);
+  drops = Array(cols).fill(1);
+}
+
+function drawMatrix() {
+  ctx.fillStyle = 'rgba(3,7,18,.05)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '13px monospace';
+  drops.forEach((y, i) => {
+    const char  = chars[Math.floor(Math.random() * chars.length)];
+    const frac  = (i / cols);
+    const r = Math.floor(frac * 168);
+    const g = Math.floor((1 - frac) * 255);
+    const b = 255;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.8)`;
+    ctx.fillText(char, i * 20, y * 20);
+    if (y * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+    drops[i]++;
+  });
+}
+
+resize();
+window.addEventListener('resize', resize);
+setInterval(drawMatrix, 50);
+
+/* ── Typewriter ── */
+const tw    = document.getElementById('tw');
+const text  = 'Kernel-Level AI Isolation';
+let   ti    = 0;
+function type() {
+  if (ti <= text.length) {
+    tw.textContent = text.slice(0, ti++);
+    setTimeout(type, 80);
+  }
+}
+setTimeout(type, 600);
+
+/* ── Scroll fade-in ── */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+
+/* ── Live terminal feed ── */
+const log  = document.getElementById('term-log');
+const events = [
+  ['tg-dim',    '$ ebpf-guardian --mode lsm+uprobe --uid 1000'],
+  ['tg-green',  '[  OK  ] Disk Guardian loaded — lsm/inode_unlink hooked'],
+  ['tg-green',  '[  OK  ] DB Guardian loaded   — query__start uprobe active'],
+  ['tg-blue',   '[  OK  ] Telegram gate connected (bot @aigate_bot)'],
+  ['tg-dim',    '─────────────────────────────────────────────────────'],
+  ['tg-yellow', '[ INTERCEPT ] claude-code pid=4821 → unlink(/home/ec2-user/config.yaml)'],
+  ['tg-dim',    '           → SIGSTOP sent · awaiting Telegram decision…'],
+  ['tg-green',  '           → decision: ALLOW  · SIGCONT sent'],
+  ['tg-yellow', '[ INTERCEPT ] python3 pid=7102 → SQL: DROP TABLE users'],
+  ['tg-dim',    '           → SIGSTOP sent · awaiting Telegram decision…'],
+  ['tg-red',    '           → decision: DENY   · pg_terminate_backend(7102)'],
+  ['tg-yellow', '[ INTERCEPT ] python3 pid=8841 → SQL: DELETE FROM logs WHERE…'],
+  ['tg-dim',    '           → SIGSTOP sent · awaiting Telegram decision…'],
+  ['tg-green',  '           → decision: ALLOW  · SIGCONT sent'],
+  ['tg-dim',    '─────────────────────────────────────────────────────'],
+  ['tg-blue',   '[ INFO  ] 24h stats: disk=2  db=8  email=0  total=10'],
+];
+
+let ei = 0;
+function addLine() {
+  if (ei >= events.length) { ei = 5; }
+  const [cls, txt] = events[ei++];
+  const li = document.createElement('li');
+  li.className = cls;
+  li.textContent = txt;
+  log.appendChild(li);
+  requestAnimationFrame(() => li.classList.add('show'));
+  while (log.children.length > 12) log.removeChild(log.firstChild);
+}
+
+// stagger initial lines
+events.slice(0, 5).forEach((_, i) => setTimeout(addLine, i * 180));
+setInterval(addLine, 2200);
+
+/* ── Pull real stats ── */
+async function loadStats() {
+  try {
+    const d = await fetch('/api/stats').then(r => r.json());
+    const total = (d.disk_intercepts || 0) + (d.db_intercepts || 0) + (d.email_intercepts || 0);
+    const el = document.getElementById('s-intercepts');
+    if (el) animateNum(el, total);
+  } catch(e) {}
+}
+
+function animateNum(el, target) {
+  let cur = 0;
+  const step = Math.max(1, Math.floor(target / 30));
+  const t = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    el.textContent = cur;
+    if (cur >= target) clearInterval(t);
+  }, 40);
+}
+
+loadStats();
+setInterval(loadStats, 30000);
+</script>
 </body>
 </html>
