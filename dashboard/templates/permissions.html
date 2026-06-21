@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="px-8 py-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">Permissions</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Allow / deny rules per program — changes take effect immediately</p>
+    </div>
+  </div>
+
+  <!-- Add rule -->
+  <div class="card p-5 mb-6">
+    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Add Rule</div>
+    <div class="flex items-center gap-3">
+      <input id="add-program" placeholder="Program (e.g. claude-code)" class="input flex-1">
+      <input id="add-path"    placeholder="Path (e.g. /home/ec2-user/projects/)" class="input flex-1">
+      <select id="add-action" class="input w-40">
+        <option value="allow_always">allow_always</option>
+        <option value="ask">ask</option>
+        <option value="deny">deny</option>
+      </select>
+      <button onclick="addRule()" class="btn-primary whitespace-nowrap">Add Rule</button>
+    </div>
+    <div id="add-msg" class="mt-2 text-xs text-emerald-600 hidden">✓ Rule added. Reload to see it.</div>
+  </div>
+
+  <!-- Rules by program -->
+  {% for prog, cfg in programs.items() %}
+  <div class="card mb-4" id="prog-{{ prog | replace('-', '_') }}">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-sm font-semibold text-slate-800">{{ prog }}</span>
+        <span class="badge badge-gray">{{ cfg.get('disk', []) | length }} rules</span>
+      </div>
+    </div>
+    <table class="w-full">
+      <thead class="bg-slate-50 border-b border-slate-100">
+        <tr>
+          <th class="th">Path</th>
+          <th class="th w-36">Action</th>
+          <th class="th w-24">Revoke</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for rule in cfg.get('disk', []) %}
+        <tr class="hover:bg-slate-50" id="rule-{{ prog }}-{{ loop.index }}">
+          <td class="td font-mono text-xs">{{ rule.get('path', '—') }}</td>
+          <td class="td">
+            {% set action = rule.get('action', '') %}
+            {% if action == 'allow_always' %}
+              <span class="badge badge-green">allow_always</span>
+            {% elif action == 'deny' %}
+              <span class="badge badge-red">deny</span>
+            {% elif action == 'ask' %}
+              <span class="badge badge-yellow">ask</span>
+            {% else %}
+              <span class="badge badge-gray">{{ action }}</span>
+            {% endif %}
+          </td>
+          <td class="td">
+            <button onclick="revoke('{{ prog }}', '{{ rule.get('path','') }}', '{{ rule.get('action','') }}')"
+              class="btn-danger">Revoke</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="td text-slate-400 text-center py-4">No rules</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card p-10 text-center text-slate-400">No programs configured yet</div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function revoke(program, path, action) {
+  if (!confirm(`Revoke rule for ${program}: ${action} → ${path}?`)) return;
+  const r = await fetch('/api/permissions/revoke', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ program, path, action })
+  });
+  if ((await r.json()).ok) location.reload();
+}
+
+async function addRule() {
+  const program = document.getElementById('add-program').value.trim();
+  const path    = document.getElementById('add-path').value.trim();
+  const action  = document.getElementById('add-action').value;
+  if (!program || !path) { alert('Program and path are required'); return; }
+  const r = await fetch('/api/permissions/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ program, path, action })
+  });
+  if ((await r.json()).ok) {
+    document.getElementById('add-msg').classList.remove('hidden');
+    setTimeout(() => location.reload(), 800);
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+[Unit]
+Description=AI Guardian — eBPF security monitor for AI agents
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ec2-user/aigate
+ExecStart=/usr/bin/python3 /home/ec2-user/aigate/guardian.py start-all
+Restart=on-failure
+RestartSec=5
+
+# eBPF and SIGSTOP require root
+User=root
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aigate
+
+[Install]
+WantedBy=multi-user.target

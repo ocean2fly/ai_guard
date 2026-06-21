@@ -1,0 +1,24 @@
+# Live config (contains credentials)
+config.yaml
+
+# Audit log and backups
+audit.log
+backups/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Credentials
+*.json
+!config.example.yaml
+
+# Editor
+.#*
+*.swp
+*.swo
+
+# Claude Code
+.claude/

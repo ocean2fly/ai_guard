@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="px-8 py-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">✉️ Email Guardian — Events</h1>
+      <p class="text-sm text-slate-500 mt-0.5">IMAP delete intercepts · decisions</p>
+    </div>
+    <button id="live-btn" onclick="toggleLive()"
+      class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+      <span class="w-2 h-2 rounded-full bg-slate-300" id="live-dot"></span>
+      <span id="live-label">Live</span>
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" class="card p-4 mb-4 flex items-center gap-3 flex-wrap">
+    <div class="flex items-center gap-2">
+      <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Decision</label>
+      <select name="decision" class="input w-36 py-1.5">
+        <option value="">All</option>
+        <option value="allow" {{ 'selected' if fd == 'allow' }}>Allowed</option>
+        <option value="deny"  {{ 'selected' if fd == 'deny'  }}>Denied</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2 flex-1">
+      <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Search</label>
+      <input name="search" value="{{ fs }}" placeholder="subject / sender…" class="input flex-1 py-1.5">
+    </div>
+    <button type="submit" class="btn-primary py-1.5">Filter</button>
+    {% if fd or fs %}<a href="/email" class="btn-ghost py-1.5">Clear</a>{% endif %}
+  </form>
+
+  <div class="card overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50">
+      <span class="text-xs text-slate-400">Showing <strong class="text-slate-600" id="row-count">{{ events|length }}</strong> events</span>
+      <span class="text-xs text-slate-400" id="live-status"></span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-slate-50 border-b border-slate-100">
+          <tr>
+            <th class="th w-20">Time</th>
+            <th class="th w-28">Action</th>
+            <th class="th">Subject</th>
+            <th class="th w-44">From</th>
+            <th class="th w-36">Email Date</th>
+            <th class="th w-20">Msg</th>
+            <th class="th w-40">Process</th>
+            <th class="th w-24">Decision</th>
+          </tr>
+        </thead>
+        <tbody id="events-body" class="divide-y divide-slate-50">
+          {% for e in events %}
+          {% set op_map = {
+            'STORE +FLAGS \\Deleted': 'Delete email',
+            'EXPUNGE':               'Purge deleted',
+            'MOVE':                  'Move to trash',
+          } %}
+          {% set action_label = op_map.get(e.get('operation',''), e.get('operation','—')) %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="td font-mono text-slate-400 text-xs">{{ e._time }}</td>
+            <td class="td text-xs">
+              <span class="badge badge-violet">{{ action_label }}</span>
+            </td>
+            <td class="td text-xs">
+              <span class="block truncate max-w-xs font-medium text-slate-700"
+                    title="{{ e.get('subject','') }}">
+                {{ e.get('subject','') or '—' }}
+              </span>
+            </td>
+            <td class="td text-xs text-slate-500">
+              <span class="block truncate max-w-xs" title="{{ e.get('from_addr','') }}">
+                {{ e.get('from_addr','') or '—' }}
+              </span>
+            </td>
+            <td class="td text-xs text-slate-400">{{ (e.get('date','') or '—')[:25] }}</td>
+            <td class="td font-mono text-xs text-slate-400">{{ e.get('message_ids','—') }}</td>
+            <td class="td text-xs text-slate-400">
+              <span class="block truncate max-w-xs" title="{{ e.get('chain','') }}">
+                {{ e.get('chain','') or e.get('comm','—') }}
+              </span>
+            </td>
+            <td class="td"><span class="{{ e._badge.cls }}">{{ e._badge.label }}</span></td>
+          </tr>
+          {% else %}
+          <tr id="empty-row"><td colspan="7" class="td text-center text-slate-400 py-10">No email delete events yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const OP_MAP = {
+  'STORE +FLAGS \\Deleted': 'Delete email',
+  'EXPUNGE':               'Purge deleted',
+  'MOVE':                  'Move to trash',
+};
+let evtSource = null, liveOn = false, newRowCount = 0;
+
+function makeRow(e) {
+  if (!e.event || !e.event.startsWith('email_delete_')) return '';
+  const time   = (e.timestamp || '').substring(11,19);
+  const op     = e.operation || '—';
+  const label  = OP_MAP[op] || op;
+  const subj   = e.subject   || '—';
+  const from_  = e.from_addr || '—';
+  const ids    = e.message_ids || '—';
+  const chain  = e.chain || e.comm || '—';
+  const badge  = e._badge || {cls:'badge-violet', label:'email delete'};
+  return `<tr class="hover:bg-slate-50 transition-colors bg-violet-50/30">
+    <td class="td font-mono text-slate-400 text-xs">${time}</td>
+    <td class="td text-xs"><span class="badge badge-violet">${label}</span></td>
+    <td class="td text-xs"><span class="block truncate max-w-xs font-medium text-slate-700" title="${subj}">${subj}</span></td>
+    <td class="td text-xs text-slate-500 truncate max-w-xs">${from_}</td>
+    <td class="td font-mono text-xs text-slate-400">${ids}</td>
+    <td class="td text-xs text-slate-400"><span class="block truncate max-w-xs" title="${chain}">${chain}</span></td>
+    <td class="td"><span class="${badge.cls}">${badge.label}</span></td>
+  </tr>`;
+}
+
+function toggleLive() { liveOn ? stopLive() : startLive(); }
+function startLive() {
+  liveOn = true;
+  document.getElementById('live-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+  document.getElementById('live-btn').className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-emerald-300 bg-emerald-50 text-emerald-700 transition-colors';
+  evtSource = new EventSource('/api/events/stream');
+  evtSource.onmessage = function(msg) {
+    try {
+      const e = JSON.parse(msg.data);
+      const row = makeRow(e);
+      if (!row) return;
+      const body = document.getElementById('events-body');
+      document.getElementById('empty-row')?.remove();
+      body.insertAdjacentHTML('afterbegin', row);
+      document.getElementById('live-status').textContent = `+${++newRowCount} live`;
+      document.getElementById('row-count').textContent = body.rows.length;
+    } catch(err) {}
+  };
+}
+function stopLive() {
+  liveOn = false;
+  evtSource?.close(); evtSource = null;
+  document.getElementById('live-dot').className = 'w-2 h-2 rounded-full bg-slate-300';
+  document.getElementById('live-btn').className = 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors';
+  document.getElementById('live-status').textContent = '';
+}
+</script>
+{% endblock %}

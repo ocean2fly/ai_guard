@@ -1,0 +1,92 @@
+telegram:
+  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
+  chat_id: "YOUR_TELEGRAM_CHAT_ID"
+
+global:
+  confirm_method: telegram
+  timeout_seconds: 1800       # auto-deny if no response within this many seconds
+  bulk_threshold: 3           # N+ deletes in quick succession = bulk alert
+  backup_retention_days: 7
+
+disk:
+  watch_paths:
+    - /
+  exclude_patterns:
+    - /proc
+    - /sys
+    - /dev
+    - /run
+    - /tmp
+    - /var/tmp
+    - /var/cache
+    - /var/log
+    - "*/aigate/backups/*"
+    - "*.pyc"
+    - __pycache__
+    - .git
+    - "*.log"
+    - "*.tmp"
+    - "*.lock"
+    - "*.swp"
+    - .#*
+  integrity:
+    enabled: true
+    watch_files:
+      - /home/YOUR_USER/.ssh/authorized_keys
+  usage_alerts:
+    warning_pct: 75
+    critical_pct: 90
+    poll_interval_seconds: 60
+
+db:
+  enabled: true
+  dsn: "host=localhost port=5432 user=postgres password=YOUR_PG_PASSWORD dbname=postgres"
+  postgres_binary: /usr/bin/postgres
+  postgres_uid: 26            # OS uid of the postgres OS user (check: id postgres)
+  timeout_seconds: 120
+  intercept:
+    drop: ask
+    truncate: ask
+    delete_all: ask           # DELETE with no WHERE
+    delete_where: allow       # DELETE with WHERE (usually safe to allow)
+    alter_column: ask
+
+email:
+  enabled: false              # set true after completing Gmail OAuth setup
+  monitor_uid: 1000           # OS uid to monitor (your user account)
+  monitor_comms:              # process names whose SSL writes are intercepted
+    - claude
+    - python3
+    - node
+    - bash
+    - curl
+  gmail_token_path: /home/YOUR_USER/.credentials/gmail_token.json
+  gmail_address: you@gmail.com
+  gmail_client_id: YOUR_GOOGLE_OAUTH_CLIENT_ID
+  gmail_client_secret: YOUR_GOOGLE_OAUTH_CLIENT_SECRET
+  timeout_seconds: 120
+  intercept:
+    delete: ask
+
+programs:
+  # Per-program allow rules.
+  # These are extended automatically when you tap "Always Allow" in Telegram.
+  # You can also add manual rules here.
+  #
+  # Example: allow claude-code to delete files in its own working directories
+  claude-code:
+    disk:
+      - action: allow_always
+        path: /home/YOUR_USER/.claude/
+      - action: allow_always
+        path: /tmp/
+  # Example: allow rm to delete files anywhere in the home directory
+  rm:
+    disk:
+      - action: allow_always
+        path: /home/YOUR_USER/
+  # Example: always allow postgres to DROP (if you trust your DB schema migrations)
+  # postgres:
+  #   db:
+  #     - action: allow
+  #       label: DROP
